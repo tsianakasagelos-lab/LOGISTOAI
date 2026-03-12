@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LogistoAI — PDF to Excel & Word</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f7f4ef;
+  --surface: #ffffff;
+  --surface2: #f0ece4;
+  --border: #ddd8ce;
+  --border2: #c8c0b0;
+  --accent: #2d4a7a;
+  --accent2: #e8a020;
+  --text: #1a1a1a;
+  --muted: #888070;
+  --danger: #c0392b;
+  --green: #1a7a4a;
+  --gold: #e8a020;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans-serif; min-height:100vh; }
+.container { max-width:860px; margin:0 auto; padding:0 24px; }
+
+/* ── HEADER ── */
+header { padding:28px 0 22px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); margin-bottom:36px; }
+.logo { display:flex; align-items:baseline; gap:0; }
+.logo-main { font-family:'Playfair Display',serif; font-size:26px; font-weight:900; color:var(--accent); letter-spacing:-0.5px; }
+.logo-dot { width:6px; height:6px; background:var(--accent2); border-radius:50%; display:inline-block; margin:0 1px 5px 1px; }
+.logo-sub { font-size:10px; font-weight:500; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-left:10px; border-left:1px solid var(--border2); padding-left:10px; }
+.header-right { display:flex; align-items:center; gap:10px; }
+.user-badge { display:none; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:6px 12px; font-size:12px; }
+.user-badge .plan-tag { background:var(--accent); color:white; border-radius:4px; padding:2px 7px; font-size:10px; font-weight:600; letter-spacing:0.5px; }
+.user-badge .plan-tag.pro { background:var(--gold); color:#000; }
+.doc-counter { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); }
+.logout-btn { background:none; border:none; color:var(--muted); cursor:pointer; font-size:12px; font-family:'IBM Plex Sans',sans-serif; text-decoration:underline; }
+
+/* ── OVERLAY PAGES (Auth) ── */
+.page { display:none; }
+.page.active { display:block; }
+
+/* ── AUTH CARD ── */
+.auth-wrap { max-width:420px; margin:40px auto; }
+.auth-card { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:36px; box-shadow:0 4px 24px rgba(0,0,0,.06); }
+.auth-card h2 { font-family:'Playfair Display',serif; font-size:26px; font-weight:900; color:var(--accent); margin-bottom:6px; }
+.auth-card p { color:var(--muted); font-size:14px; margin-bottom:24px; font-weight:300; }
+
+.form-group { margin-bottom:16px; }
+.form-group label { display:block; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
+.form-group input { width:100%; background:var(--surface2); border:1.5px solid var(--border); border-radius:10px; padding:11px 14px; font-family:'IBM Plex Sans',sans-serif; font-size:14px; color:var(--text); outline:none; transition:border-color .2s; }
+.form-group input:focus { border-color:var(--accent); }
+.form-group input::placeholder { color:var(--muted); }
+
+.referral-note { background:rgba(232,160,32,.08); border:1px solid rgba(232,160,32,.3); border-radius:8px; padding:10px 14px; font-size:12px; color:#a06010; margin-bottom:16px; display:none; }
+.referral-note strong { color:var(--gold); }
+
+.auth-btn { width:100%; background:var(--accent); color:white; border:none; border-radius:12px; padding:14px; font-family:'IBM Plex Sans',sans-serif; font-size:15px; font-weight:600; cursor:pointer; transition:all .2s; margin-bottom:14px; }
+.auth-btn:hover { background:#3d5a8a; transform:translateY(-1px); }
+
+.auth-switch { text-align:center; font-size:13px; color:var(--muted); }
+.auth-switch a { color:var(--accent); cursor:pointer; font-weight:600; text-decoration:none; }
+.auth-switch a:hover { text-decoration:underline; }
+
+.auth-error { background:rgba(192,57,43,.08); border:1px solid rgba(192,57,43,.25); border-radius:8px; padding:10px 14px; font-size:13px; color:var(--danger); margin-bottom:14px; display:none; font-family:'IBM Plex Mono',monospace; }
+
+/* ── HERO ── */
+.hero { text-align:center; padding:8px 0 40px; }
+.hero-ey { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--accent2); letter-spacing:3px; text-transform:uppercase; margin-bottom:14px; }
+.hero h1 { font-family:'Playfair Display',serif; font-size:clamp(34px,6vw,58px); font-weight:900; line-height:1.05; letter-spacing:-1.5px; color:var(--accent); margin-bottom:16px; }
+.hero h1 em { font-style:italic; color:var(--accent2); }
+.hero p { color:var(--muted); font-size:15px; max-width:440px; margin:0 auto 28px; line-height:1.7; font-weight:300; }
+.hero-stats { display:inline-flex; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--surface); }
+.hstat { padding:11px 18px; text-align:center; border-right:1px solid var(--border); }
+.hstat:last-child { border-right:none; }
+.hstat-n { font-family:'Playfair Display',serif; font-size:19px; font-weight:700; color:var(--accent); }
+.hstat-l { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-top:2px; }
+
+/* ── FREEMIUM BANNER ── */
+.freemium-banner { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 20px; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; box-shadow:0 2px 12px rgba(0,0,0,.04); }
+.fb-left { display:flex; align-items:center; gap:12px; }
+.fb-icon { font-size:24px; }
+.fb-text h4 { font-size:14px; font-weight:600; color:var(--accent); margin-bottom:2px; }
+.fb-text p { font-size:12px; color:var(--muted); }
+.fb-bar-wrap { flex:1; min-width:120px; max-width:200px; }
+.fb-bar-bg { background:var(--surface2); border-radius:99px; height:6px; overflow:hidden; margin-bottom:4px; }
+.fb-bar-fill { height:100%; background:var(--accent); border-radius:99px; transition:width .5s; }
+.fb-bar-label { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); text-align:right; }
+.upgrade-btn { background:var(--gold); color:#000; border:none; border-radius:8px; padding:8px 16px; font-family:'IBM Plex Sans',sans-serif; font-size:12px; font-weight:700; cursor:pointer; transition:all .2s; white-space:nowrap; }
+.upgrade-btn:hover { background:#d4920e; }
+
+/* ── MAIN CARD ── */
+.main-card { background:var(--surface); border:1px solid var(--border); border-radius:20px; overflow:hidden; margin-bottom:20px; box-shadow:0 4px 24px rgba(0,0,0,.06); }
+.card-hdr { padding:15px 26px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; background:var(--surface2); }
+.card-ttl { font-size:11px; font-weight:600; letter-spacing:1.5px; color:var(--muted); text-transform:uppercase; }
+.dots { display:flex; gap:6px; }
+.dot { width:8px; height:8px; border-radius:50%; background:var(--border); transition:all .3s; }
+.dot.active { background:var(--accent2); }
+.dot.done { background:var(--accent); }
+
+/* ── UPLOAD ── */
+.upload-zone { margin:18px; padding:38px 22px; text-align:center; cursor:pointer; border:2px dashed var(--border); border-radius:14px; transition:all .2s; }
+.upload-zone:hover, .upload-zone.dragover { background:var(--surface2); border-color:var(--accent2); }
+.upl-icon { width:68px; height:68px; border:1.5px solid var(--border2); border-radius:18px; display:flex; align-items:center; justify-content:center; font-size:28px; margin:0 auto 16px; background:var(--surface2); transition:all .3s; }
+.upload-zone:hover .upl-icon { border-color:var(--accent2); transform:translateY(-3px); }
+.upload-zone h3 { font-family:'Playfair Display',serif; font-size:19px; font-weight:700; color:var(--accent); margin-bottom:7px; }
+.upload-zone p { color:var(--muted); font-size:13px; }
+.upload-zone p strong { color:var(--accent2); cursor:pointer; text-decoration:underline; text-underline-offset:2px; }
+.upl-actions { display:flex; justify-content:center; gap:10px; margin-top:16px; flex-wrap:wrap; }
+.upl-btn { display:flex; align-items:center; gap:7px; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; padding:8px 14px; font-family:'IBM Plex Sans',sans-serif; font-size:13px; font-weight:500; color:var(--text); cursor:pointer; transition:all .2s; }
+.upl-btn:hover { border-color:var(--accent2); color:var(--accent2); }
+.ftags { display:flex; justify-content:center; gap:6px; margin-top:14px; flex-wrap:wrap; }
+.ftag { background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:3px 8px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); }
+#fileInput, #cameraInput { display:none; }
+
+/* ── FILE LOADED ── */
+.file-loaded { padding:20px 26px; display:none; }
+.fi-row { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 15px; display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+.fi-ico { width:38px; height:38px; background:var(--accent); color:white; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+.fi-det { flex:1; min-width:0; }
+.fi-name { font-weight:600; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fi-meta { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); margin-top:2px; }
+.fi-rm { background:none; border:none; color:var(--muted); cursor:pointer; font-size:17px; padding:4px; transition:color .2s; flex-shrink:0; }
+.fi-rm:hover { color:var(--danger); }
+.slabel { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:9px; }
+.doc-types { display:grid; grid-template-columns:repeat(5,1fr); gap:7px; margin-bottom:18px; }
+@media(max-width:560px){ .doc-types { grid-template-columns:repeat(3,1fr); } }
+.dt-btn { background:var(--surface2); border:1.5px solid var(--border); border-radius:10px; padding:10px 6px; cursor:pointer; transition:all .2s; text-align:center; color:var(--text); font-family:'IBM Plex Sans',sans-serif; }
+.dt-btn:hover { border-color:var(--accent2); }
+.dt-btn.sel { border-color:var(--accent); background:var(--accent); color:white; }
+.dt-ic { font-size:19px; margin-bottom:4px; }
+.dt-lb { font-size:11px; font-weight:600; line-height:1.2; }
+.opts-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:18px; }
+@media(max-width:500px){ .opts-grid { grid-template-columns:1fr; } }
+.opt-card { background:var(--surface2); border:1.5px solid var(--border); border-radius:11px; padding:12px 14px; cursor:pointer; transition:all .2s; display:flex; align-items:flex-start; gap:10px; }
+.opt-card.sel { border-color:var(--accent); background:#eef0f8; }
+.opt-tog { width:19px; height:19px; border-radius:5px; border:2px solid var(--border2); display:flex; align-items:center; justify-content:center; font-size:11px; flex-shrink:0; margin-top:1px; transition:all .2s; }
+.opt-card.sel .opt-tog { background:var(--accent); border-color:var(--accent); color:white; }
+.opt-ttl { font-size:12px; font-weight:600; margin-bottom:2px; }
+.opt-dsc { font-size:11px; color:var(--muted); line-height:1.4; }
+.exp-opts { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-bottom:18px; }
+@media(max-width:500px){ .exp-opts { grid-template-columns:1fr; } }
+.ef-btn { background:var(--surface2); border:1.5px solid var(--border); border-radius:10px; padding:11px 7px; cursor:pointer; transition:all .2s; text-align:center; font-family:'IBM Plex Sans',sans-serif; color:var(--text); }
+.ef-btn:hover { border-color:var(--border2); }
+.ef-btn.sel { border-color:var(--accent); background:var(--accent); color:white; }
+.ef-ic { font-size:20px; margin-bottom:4px; }
+.ef-lb { font-size:12px; font-weight:600; }
+.ef-ds { font-size:10px; opacity:.65; margin-top:2px; }
+.analyze-btn { width:100%; background:var(--accent); color:white; border:none; border-radius:12px; padding:14px; font-family:'IBM Plex Sans',sans-serif; font-size:15px; font-weight:600; cursor:pointer; transition:all .2s; display:flex; align-items:center; justify-content:center; gap:8px; }
+.analyze-btn:hover { background:#3d5a8a; transform:translateY(-1px); box-shadow:0 4px 16px rgba(45,74,122,.25); }
+.analyze-btn:disabled { background:var(--border); color:var(--muted); cursor:not-allowed; transform:none; box-shadow:none; }
+
+/* ── PROCESSING ── */
+.processing { padding:48px 26px; text-align:center; display:none; }
+.sp-wrap { width:60px; height:60px; margin:0 auto 18px; position:relative; }
+.sp-out { width:60px; height:60px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; position:absolute; }
+.sp-in { width:42px; height:42px; border:2px solid var(--border); border-bottom-color:var(--accent2); border-radius:50%; animation:spin .6s linear infinite reverse; position:absolute; top:9px; left:9px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.processing h3 { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; color:var(--accent); margin-bottom:5px; }
+.proc-steps { list-style:none; margin-top:18px; text-align:left; max-width:260px; margin-left:auto; margin-right:auto; }
+.proc-steps li { display:flex; align-items:center; gap:9px; padding:5px 0; font-size:12px; color:var(--muted); font-family:'IBM Plex Mono',monospace; transition:color .3s; }
+.proc-steps li.active { color:var(--accent); font-weight:500; }
+.proc-steps li.done { color:var(--border2); }
+.psd { width:17px; height:17px; border-radius:50%; border:1.5px solid var(--border2); display:flex; align-items:center; justify-content:center; font-size:9px; flex-shrink:0; transition:all .3s; }
+.proc-steps li.active .psd { border-color:var(--accent); color:var(--accent); animation:pulse 1.2s ease-in-out infinite; }
+.proc-steps li.done .psd { border-color:var(--green); background:var(--green); color:white; }
+@keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(45,74,122,.2)} 50%{box-shadow:0 0 0 5px rgba(45,74,122,0)} }
+
+/* ── ERROR ── */
+.err-box { background:rgba(192,57,43,.06); border:1px solid rgba(192,57,43,.25); border-radius:10px; padding:12px 16px; display:none; margin:0 26px 14px; }
+.err-box p { color:var(--danger); font-size:12px; font-family:'IBM Plex Mono',monospace; line-height:1.6; }
+
+/* ── RESULTS ── */
+.results { padding:22px 26px; display:none; }
+.res-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
+.res-ttl { font-family:'Playfair Display',serif; font-size:19px; font-weight:700; color:var(--accent); }
+.res-ttl span { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); margin-left:8px; }
+.exp-row { display:flex; gap:7px; flex-wrap:wrap; }
+.dl-btn { background:var(--surface2); border:1px solid var(--border2); color:var(--text); border-radius:8px; padding:7px 12px; font-family:'IBM Plex Sans',sans-serif; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all .2s; }
+.dl-btn:hover { border-color:var(--accent); color:var(--accent); }
+.dl-btn.prim { background:var(--accent); color:white; border-color:var(--accent); }
+.dl-btn.prim:hover { background:#3d5a8a; }
+.dl-btn.word { background:#2b579a; color:white; border-color:#2b579a; }
+.dl-btn.word:hover { background:#1e3f73; }
+.sum-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:9px; margin-bottom:16px; }
+.sc { background:var(--surface2); border:1px solid var(--border); border-radius:11px; padding:12px 14px; }
+.sc-lb { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-family:'IBM Plex Mono',monospace; margin-bottom:5px; }
+.sc-vl { font-family:'Playfair Display',serif; font-size:19px; font-weight:700; color:var(--accent); }
+.layout-prev { background:var(--surface2); border:1px solid var(--border); border-radius:11px; padding:14px; margin-bottom:14px; display:none; }
+.lp-ttl { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:9px; font-family:'IBM Plex Mono',monospace; }
+.lp-cont { background:white; border:1px solid var(--border); border-radius:7px; padding:16px; font-size:11px; line-height:1.8; white-space:pre-wrap; max-height:260px; overflow-y:auto; font-family:'IBM Plex Mono',monospace; color:#333; }
+.tbl-wrap { overflow-x:auto; border-radius:11px; border:1px solid var(--border); margin-bottom:14px; }
+table { width:100%; border-collapse:collapse; font-size:12px; }
+th { background:var(--surface2); padding:10px 14px; text-align:left; font-family:'IBM Plex Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); border-bottom:1px solid var(--border); white-space:nowrap; }
+td { padding:9px 14px; border-bottom:1px solid rgba(0,0,0,.04); font-family:'IBM Plex Mono',monospace; font-size:12px; }
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:var(--surface2); }
+td.amt { color:var(--green); font-weight:500; }
+.raw-sec { background:var(--surface2); border:1px solid var(--border); border-radius:11px; padding:12px 14px; margin-bottom:14px; }
+.raw-sec summary { cursor:pointer; font-size:11px; font-weight:600; color:var(--muted); user-select:none; font-family:'IBM Plex Mono',monospace; }
+.raw-sec pre { margin-top:9px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#888; white-space:pre-wrap; word-break:break-word; line-height:1.7; max-height:160px; overflow-y:auto; }
+.new-btn { background:none; border:1px solid var(--border2); color:var(--muted); border-radius:8px; padding:9px 16px; font-family:'IBM Plex Sans',sans-serif; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all .2s; }
+.new-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+/* ── REFERRAL SECTION ── */
+.referral-section { background:linear-gradient(135deg,rgba(232,160,32,.08),rgba(45,74,122,.06)); border:1px solid rgba(232,160,32,.3); border-radius:16px; padding:24px; margin-bottom:20px; }
+.ref-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+.ref-icon { font-size:28px; }
+.ref-header h3 { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; color:var(--accent); margin-bottom:3px; }
+.ref-header p { font-size:13px; color:var(--muted); }
+.ref-link-wrap { display:flex; gap:8px; margin-bottom:14px; }
+.ref-link-input { flex:1; background:var(--surface); border:1.5px solid var(--border); border-radius:8px; padding:10px 14px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--text); outline:none; }
+.ref-copy-btn { background:var(--accent); color:white; border:none; border-radius:8px; padding:10px 16px; font-family:'IBM Plex Sans',sans-serif; font-size:13px; font-weight:600; cursor:pointer; transition:all .2s; white-space:nowrap; }
+.ref-copy-btn:hover { background:#3d5a8a; }
+.ref-progress { margin-bottom:10px; }
+.ref-progress-label { display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px; }
+.ref-progress-label span:first-child { color:var(--muted); }
+.ref-progress-label span:last-child { font-weight:600; color:var(--accent); font-family:'IBM Plex Mono',monospace; }
+.ref-prog-bg { background:var(--border); border-radius:99px; height:8px; overflow:hidden; }
+.ref-prog-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:99px; transition:width .5s; }
+.ref-reward { background:rgba(232,160,32,.1); border-radius:8px; padding:10px 14px; font-size:12px; color:#a06010; text-align:center; }
+.ref-reward strong { color:var(--gold); }
+
+/* ── UPGRADE MODAL ── */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:100; align-items:center; justify-content:center; padding:20px; }
+.modal-overlay.show { display:flex; }
+.modal { background:var(--surface); border-radius:20px; padding:32px; max-width:500px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,.15); }
+.modal h2 { font-family:'Playfair Display',serif; font-size:24px; font-weight:900; color:var(--accent); margin-bottom:6px; }
+.modal p { color:var(--muted); font-size:14px; margin-bottom:24px; line-height:1.6; }
+.plans-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; }
+@media(max-width:400px){ .plans-grid { grid-template-columns:1fr; } }
+.plan-card { border:2px solid var(--border); border-radius:14px; padding:20px; cursor:pointer; transition:all .2s; }
+.plan-card:hover { border-color:var(--accent); }
+.plan-card.recommended { border-color:var(--accent); background:var(--accent); color:white; }
+.plan-name { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:8px; font-family:'IBM Plex Mono',monospace; }
+.plan-card.recommended .plan-name { color:rgba(255,255,255,.6); }
+.plan-price { font-family:'Playfair Display',serif; font-size:32px; font-weight:900; color:var(--accent); margin-bottom:4px; }
+.plan-card.recommended .plan-price { color:white; }
+.plan-price span { font-size:14px; color:var(--muted); font-family:'IBM Plex Sans',sans-serif; }
+.plan-card.recommended .plan-price span { color:rgba(255,255,255,.6); }
+.plan-desc { font-size:12px; color:var(--muted); line-height:1.5; }
+.plan-card.recommended .plan-desc { color:rgba(255,255,255,.75); }
+.modal-close { background:none; border:1px solid var(--border2); color:var(--muted); border-radius:8px; padding:10px 20px; font-family:'IBM Plex Sans',sans-serif; font-size:13px; cursor:pointer; width:100%; transition:all .2s; }
+.modal-close:hover { border-color:var(--accent); color:var(--accent); }
+
+/* ── HOW / PRICING ── */
+.sec-h { font-family:'Playfair Display',serif; font-size:22px; font-weight:700; color:var(--accent); text-align:center; margin-bottom:18px; }
+.how-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:11px; margin-bottom:40px; }
+@media(max-width:600px){ .how-grid { grid-template-columns:1fr; } }
+.how-card { background:var(--surface); border:1px solid var(--border); border-radius:15px; padding:20px; }
+.how-num { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--accent2); letter-spacing:2px; margin-bottom:9px; }
+.how-card h4 { font-family:'Playfair Display',serif; font-size:15px; font-weight:700; margin-bottom:5px; color:var(--accent); }
+.how-card p { font-size:13px; color:var(--muted); line-height:1.6; font-weight:300; }
+footer { border-top:1px solid var(--border); padding:22px 0; text-align:center; color:var(--muted); font-size:11px; font-family:'IBM Plex Mono',monospace; letter-spacing:.5px; margin-top:20px; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.fade-up { animation:fadeUp .4s ease forwards; }
+</style>
+</head>
+<body>
+
+<!-- UPGRADE MODAL -->
+<div class="modal-overlay" id="upgradeModal">
+  <div class="modal">
+    <h2>Αναβάθμιση Πλάνου</h2>
+    <p>Επέλεξε το πλάνο που σου ταιριάζει. Ακύρωση οποιαδήποτε στιγμή.</p>
+    <div class="plans-grid">
+      <div class="plan-card" onclick="selectPlan('basic')">
+        <div class="plan-name">Βασικό</div>
+        <div class="plan-price">€9<span>/μήνα</span></div>
+        <div class="plan-desc">100 έγγραφα/μήνα. Ιδανικό για περιστασιακή χρήση.</div>
+      </div>
+      <div class="plan-card recommended" onclick="selectPlan('pro')">
+        <div class="plan-name">⭐ Pro</div>
+        <div class="plan-price">€19<span>/μήνα</span></div>
+        <div class="plan-desc">Απεριόριστα έγγραφα. Για λογιστές και γραφεία.</div>
+      </div>
+    </div>
+    <button class="modal-close" onclick="closeModal()">Ίσως αργότερα</button>
+  </div>
+</div>
+
+<div class="container">
+  <!-- AUTH PAGES -->
+  <div id="pageAuth">
+    <header>
+      <div class="logo">
+        <span class="logo-main">LogistoAI</span>
+        <span class="logo-dot"></span>
+        <span class="logo-sub">Document AI</span>
+      </div>
+    </header>
+
+    <div class="auth-wrap">
+      <!-- LOGIN -->
+      <div id="loginCard" class="auth-card">
+        <h2>Καλώς ήρθες</h2>
+        <p>Σύνδεσε τον λογαριασμό σου για να συνεχίσεις.</p>
+        <div class="auth-error" id="loginError"></div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="loginEmail" placeholder="email@example.com">
+        </div>
+        <div class="form-group">
+          <label>Κωδικός</label>
+          <input type="password" id="loginPass" placeholder="••••••••">
+        </div>
+        <button class="auth-btn" onclick="doLogin()">Σύνδεση →</button>
+        <p class="auth-switch">Δεν έχεις λογαριασμό; <a onclick="showRegister()">Εγγραφή δωρεάν</a></p>
+      </div>
+
+      <!-- REGISTER -->
+      <div id="registerCard" class="auth-card" style="display:none">
+        <h2>Δωρεάν Εγγραφή</h2>
+        <p>10 δωρεάν έγγραφα κάθε μήνα. Χωρίς πιστωτική κάρτα.</p>
+        <div class="auth-error" id="registerError"></div>
+        <div class="referral-note" id="referralNote">
+          🎉 Έχεις πρόσκληση από <strong id="referralFrom">—</strong>! Εγγράψου δωρεάν.
+        </div>
+        <div class="form-group">
+          <label>Όνομα</label>
+          <input type="text" id="regName" placeholder="Γιώργης Παπαδόπουλος">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="regEmail" placeholder="email@example.com">
+        </div>
+        <div class="form-group">
+          <label>Κωδικός</label>
+          <input type="password" id="regPass" placeholder="Τουλάχιστον 6 χαρακτήρες">
+        </div>
+        <button class="auth-btn" onclick="doRegister()">Εγγραφή δωρεάν →</button>
+        <p class="auth-switch">Έχεις ήδη λογαριασμό; <a onclick="showLogin()">Σύνδεση</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="pageApp" style="display:none">
+    <header>
+      <div class="logo">
+        <span class="logo-main">LogistoAI</span>
+        <span class="logo-dot"></span>
+        <span class="logo-sub">Document AI</span>
+      </div>
+      <div class="header-right">
+        <div class="user-badge" id="userBadge">
+          <span id="userEmail">—</span>
+          <span class="plan-tag" id="planTag">FREE</span>
+          <span class="doc-counter" id="docCounter">—</span>
+          <button class="logout-btn" onclick="doLogout()">Έξοδος</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="hero">
+      <div class="hero-ey">AI · Έγγραφα · Export</div>
+      <h1>PDF to Excel<br>or <em>Word</em></h1>
+      <p>Upload οποιοδήποτε έγγραφο — από κάμερα ή υπολογιστή — και κατέβασε τα δεδομένα οργανωμένα.</p>
+      <div class="hero-stats">
+        <div class="hstat"><div class="hstat-n">~15″</div><div class="hstat-l">Ανάλυση</div></div>
+        <div class="hstat"><div class="hstat-n">3</div><div class="hstat-l">Formats</div></div>
+        <div class="hstat"><div class="hstat-n">AI</div><div class="hstat-l">Powered</div></div>
+      </div>
+    </div>
+
+    <!-- FREEMIUM BANNER -->
+    <div class="freemium-banner" id="freemiumBanner">
+      <div class="fb-left">
+        <div class="fb-icon">📊</div>
+        <div class="fb-text">
+          <h4>Δωρεάν Πλάνο</h4>
+          <p id="fbDesc">0 από 10 έγγραφα χρησιμοποιήθηκαν αυτόν τον μήνα</p>
+        </div>
+      </div>
+      <div class="fb-bar-wrap">
+        <div class="fb-bar-bg"><div class="fb-bar-fill" id="fbBar" style="width:0%"></div></div>
+        <div class="fb-bar-label" id="fbBarLabel">0/10</div>
+      </div>
+      <button class="upgrade-btn" onclick="showUpgrade()">⭐ Αναβάθμιση</button>
+    </div>
+
+    <!-- MAIN CARD -->
+    <div class="main-card">
+      <div class="card-hdr">
+        <div class="card-ttl">Ανάλυση Εγγράφου</div>
+        <div class="dots"><div class="dot active" id="d1"></div><div class="dot" id="d2"></div><div class="dot" id="d3"></div></div>
+      </div>
+
+      <!-- UPLOAD -->
+      <div id="uploadState">
+        <div class="upload-zone" id="dropZone">
+          <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,image/*">
+          <input type="file" id="cameraInput" accept="image/*" capture="environment">
+          <div class="upl-icon">📄</div>
+          <h3>Σύρε το έγγραφό σου</h3>
+          <p>ή <strong onclick="document.getElementById('fileInput').click()">επίλεξε αρχείο</strong> από τον υπολογιστή</p>
+          <div class="upl-actions">
+            <button class="upl-btn" onclick="document.getElementById('fileInput').click()">🖥️ Από υπολογιστή</button>
+            <button class="upl-btn" onclick="document.getElementById('cameraInput').click()">📷 Κάμερα κινητού</button>
+          </div>
+          <div class="ftags"><span class="ftag">PDF</span><span class="ftag">JPG</span><span class="ftag">PNG</span><span class="ftag">WEBP</span><span class="ftag">HEIC</span></div>
+        </div>
+      </div>
+
+      <!-- FILE LOADED -->
+      <div class="file-loaded" id="fileLoaded">
+        <div class="fi-row">
+          <div class="fi-ico" id="fiIco">📋</div>
+          <div class="fi-det"><div class="fi-name" id="fileName">—</div><div class="fi-meta" id="fileMeta">—</div></div>
+          <button class="fi-rm" onclick="resetAll()">✕</button>
+        </div>
+        <div class="slabel">Τύπος εγγράφου</div>
+        <div class="doc-types">
+          <button class="dt-btn sel" onclick="selDT(this,'tax')"><div class="dt-ic">🧾</div><div class="dt-lb">Εκκαθαριστικό</div></button>
+          <button class="dt-btn" onclick="selDT(this,'invoice')"><div class="dt-ic">📑</div><div class="dt-lb">Τιμολόγιο</div></button>
+          <button class="dt-btn" onclick="selDT(this,'contract')"><div class="dt-ic">📝</div><div class="dt-lb">Συμβόλαιο</div></button>
+          <button class="dt-btn" onclick="selDT(this,'medical')"><div class="dt-ic">🏥</div><div class="dt-lb">Ιατρικό</div></button>
+          <button class="dt-btn" onclick="selDT(this,'other')"><div class="dt-ic">📂</div><div class="dt-lb">Άλλο</div></button>
+        </div>
+        <div class="slabel">Επιλογές</div>
+        <div class="opts-grid">
+          <div class="opt-card" id="oLayout" onclick="togOpt('oLayout','layout')">
+            <div class="opt-tog" id="tLayout">○</div>
+            <div><div class="opt-ttl">📐 Διατήρηση μορφοποίησης</div><div class="opt-dsc">Κρατά γραμμές και δομή PDF</div></div>
+          </div>
+          <div class="opt-card sel" id="oClean" onclick="togOpt('oClean','clean')">
+            <div class="opt-tog" id="tClean">✓</div>
+            <div><div class="opt-ttl">✨ Καθαρά δεδομένα</div><div class="opt-dsc">Μόνο τα δεδομένα</div></div>
+          </div>
+        </div>
+        <div class="slabel">Μορφή εξαγωγής</div>
+        <div class="exp-opts">
+          <button class="ef-btn sel" onclick="selEF(this,'csv')"><div class="ef-ic">📊</div><div class="ef-lb">CSV/Excel</div><div class="ef-ds">Άνοιγμα στο Excel</div></button>
+          <button class="ef-btn" onclick="selEF(this,'word')"><div class="ef-ic">📘</div><div class="ef-lb">Word (.doc)</div><div class="ef-ds">Επεξεργάσιμο</div></button>
+          <button class="ef-btn" onclick="selEF(this,'both')"><div class="ef-ic">📦</div><div class="ef-lb">Και τα δύο</div><div class="ef-ds">CSV + Word</div></button>
+        </div>
+        <button class="analyze-btn" onclick="analyze()">⚡ Ανάλυση με AI</button>
+      </div>
+
+      <div class="err-box" id="errBox"><p id="errMsg"></p></div>
+
+      <!-- PROCESSING -->
+      <div class="processing" id="procState">
+        <div class="sp-wrap"><div class="sp-out"></div><div class="sp-in"></div></div>
+        <h3>Αναλύω το έγγραφο…</h3>
+        <p style="color:var(--muted);font-size:13px;margin-top:4px">Παρακαλώ περίμενε</p>
+        <ul class="proc-steps">
+          <li id="ps1" class="active"><div class="psd">◉</div>Φόρτωση αρχείου</li>
+          <li id="ps2"><div class="psd">○</div>Αποκωδικοποίηση</li>
+          <li id="ps3"><div class="psd">○</div>AI ανάλυση</li>
+          <li id="ps4"><div class="psd">○</div>Δόμηση δεδομένων</li>
+          <li id="ps5"><div class="psd">○</div>Προετοιμασία export</li>
+        </ul>
+      </div>
+
+      <!-- RESULTS -->
+      <div class="results fade-up" id="resState">
+        <div class="res-top">
+          <div class="res-ttl">Αποτελέσματα <span id="fCount"></span></div>
+          <div class="exp-row" id="expBtns"></div>
+        </div>
+        <div class="sum-grid" id="sumGrid"></div>
+        <div class="layout-prev" id="layPrev"><div class="lp-ttl">📐 Μορφοποίηση</div><div class="lp-cont" id="layContent"></div></div>
+        <div class="tbl-wrap"><table><thead><tr id="tHead"></tr></thead><tbody id="tBody"></tbody></table></div>
+        <details class="raw-sec"><summary>Ακατέργαστη απάντηση AI</summary><pre id="rawOut"></pre></details>
+        <button class="new-btn" onclick="resetAll()">← Νέο έγγραφο</button>
+      </div>
+    </div>
+
+    <!-- REFERRAL -->
+    <div class="referral-section" id="referralSection">
+      <div class="ref-header">
+        <div class="ref-icon">🎁</div>
+        <div>
+          <h3>Κέρδισε δωρεάν Pro συνδρομή!</h3>
+          <p>Φέρε 5 λογιστές και πάρε Pro δωρεάν για έναν χρόνο (αξία €228)</p>
+        </div>
+      </div>
+      <div class="ref-link-wrap">
+        <input type="text" class="ref-link-input" id="refLink" readonly>
+        <button class="ref-copy-btn" onclick="copyRefLink()">📋 Αντιγραφή</button>
+      </div>
+      <div class="ref-progress">
+        <div class="ref-progress-label">
+          <span>Προσκλήσεις που εγγράφηκαν</span>
+          <span id="refCount">0/5</span>
+        </div>
+        <div class="ref-prog-bg"><div class="ref-prog-fill" id="refProgFill" style="width:0%"></div></div>
+      </div>
+      <div class="ref-reward">Στόχος: <strong>5 εγγραφές</strong> = <strong>1 χρόνος Pro δωρεάν</strong> 🏆</div>
+    </div>
+
+    <!-- HOW IT WORKS -->
+    <div class="sec-h">Πώς λειτουργεί</div>
+    <div class="how-grid">
+      <div class="how-card"><div class="how-num">01 ——</div><h4>Upload</h4><p>PDF ή φωτογραφία. Κατευθείαν από κάμερα κινητού ή από τον υπολογιστή.</p></div>
+      <div class="how-card"><div class="how-num">02 ——</div><h4>AI Ανάλυση</h4><p>Το AI διαβάζει και κατανοεί το έγγραφο, εξάγοντας όλα τα δεδομένα.</p></div>
+      <div class="how-card"><div class="how-num">03 ——</div><h4>Download</h4><p>CSV για Excel ή Word. Με ή χωρίς τη μορφοποίηση του αρχικού εγγράφου.</p></div>
+    </div>
+
+    <footer>LogistoAI © 2026 · AI Document Extraction · Powered by AnaisTa</footer>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// SIMPLE LOCAL AUTH (replace with real backend)
+// ═══════════════════════════════════════════
+const FREE_LIMIT = 10;
+
+function getUsers() { try { return JSON.parse(localStorage.getItem('lai_users')||'{}'); } catch { return {}; } }
+function saveUsers(u) { localStorage.setItem('lai_users', JSON.stringify(u)); }
+function getSession() { try { return JSON.parse(localStorage.getItem('lai_session')||'null'); } catch { return null; } }
+function saveSession(s) { localStorage.setItem('lai_session', JSON.stringify(s)); }
+
+function getRefCode(email) { return btoa(email).replace(/[^a-zA-Z0-9]/g,'').substring(0,10); }
+function getBaseUrl() { return window.location.origin + window.location.pathname; }
+
+// Check referral code in URL
+const urlParams = new URLSearchParams(window.location.search);
+const refCodeFromUrl = urlParams.get('ref');
+
+function showLogin() {
+  document.getElementById('loginCard').style.display='block';
+  document.getElementById('registerCard').style.display='none';
+}
+
+function showRegister() {
+  document.getElementById('loginCard').style.display='none';
+  document.getElementById('registerCard').style.display='block';
+  if (refCodeFromUrl) {
+    // Find who invited
+    const users = getUsers();
+    const inviter = Object.values(users).find(u => getRefCode(u.email) === refCodeFromUrl);
+    if (inviter) {
+      document.getElementById('referralNote').style.display='block';
+      document.getElementById('referralFrom').textContent = inviter.name || inviter.email;
+    }
+  }
+}
+
+function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+  errEl.style.display='none';
+
+  if (!email || !pass) { errEl.textContent='Συμπλήρωσε email και κωδικό.'; errEl.style.display='block'; return; }
+
+  const users = getUsers();
+  const user = users[email];
+  if (!user || user.pass !== btoa(pass)) {
+    errEl.textContent='Λάθος email ή κωδικός.'; errEl.style.display='block'; return;
+  }
+
+  saveSession(email);
+  loadApp();
+}
+
+function doRegister() {
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pass = document.getElementById('regPass').value;
+  const errEl = document.getElementById('registerError');
+  errEl.style.display='none';
+
+  if (!name || !email || !pass) { errEl.textContent='Συμπλήρωσε όλα τα πεδία.'; errEl.style.display='block'; return; }
+  if (pass.length < 6) { errEl.textContent='Ο κωδικός πρέπει να έχει τουλάχιστον 6 χαρακτήρες.'; errEl.style.display='block'; return; }
+
+  const users = getUsers();
+  if (users[email]) { errEl.textContent='Το email χρησιμοποιείται ήδη.'; errEl.style.display='block'; return; }
+
+  const now = new Date();
+  users[email] = {
+    email, name,
+    pass: btoa(pass),
+    plan: 'free',
+    docsThisMonth: 0,
+    monthYear: `${now.getMonth()}-${now.getFullYear()}`,
+    refCode: getRefCode(email),
+    refCount: 0,
+    invitedBy: refCodeFromUrl || null,
+    createdAt: Date.now()
+  };
+
+  // Credit the referrer
+  if (refCodeFromUrl) {
+    const referrer = Object.values(users).find(u => u.refCode === refCodeFromUrl);
+    if (referrer) {
+      referrer.refCount = (referrer.refCount || 0) + 1;
+      if (referrer.refCount >= 5 && referrer.plan === 'free') {
+        referrer.plan = 'pro';
+        referrer.proExpiry = Date.now() + 365*24*60*60*1000;
+      }
+    }
+  }
+
+  saveUsers(users);
+  saveSession(email);
+  loadApp();
+}
+
+function doLogout() {
+  localStorage.removeItem('lai_session');
+  document.getElementById('pageApp').style.display='none';
+  document.getElementById('pageAuth').style.display='block';
+  showLogin();
+}
+
+function loadApp() {
+  const email = getSession();
+  if (!email) { document.getElementById('pageAuth').style.display='block'; return; }
+
+  const users = getUsers();
+  const user = users[email];
+  if (!user) { doLogout(); return; }
+
+  // Reset monthly counter if new month
+  const now = new Date();
+  const monthYear = `${now.getMonth()}-${now.getFullYear()}`;
+  if (user.monthYear !== monthYear) {
+    user.docsThisMonth = 0;
+    user.monthYear = monthYear;
+    saveUsers(users);
+  }
+
+  document.getElementById('pageAuth').style.display='none';
+  document.getElementById('pageApp').style.display='block';
+
+  // Update header
+  const badge = document.getElementById('userBadge');
+  badge.style.display='flex';
+  document.getElementById('userEmail').textContent = user.name || email.split('@')[0];
+  const planTag = document.getElementById('planTag');
+  planTag.textContent = user.plan === 'pro' ? 'PRO' : user.plan === 'basic' ? 'BASIC' : 'FREE';
+  if (user.plan === 'pro' || user.plan === 'basic') planTag.classList.add('pro');
+
+  // Update freemium banner
+  updateFreemiumBanner(user);
+
+  // Update referral
+  const refLink = getBaseUrl() + '?ref=' + user.refCode;
+  document.getElementById('refLink').value = refLink;
+  const refCount = user.refCount || 0;
+  document.getElementById('refCount').textContent = `${refCount}/5`;
+  document.getElementById('refProgFill').style.width = Math.min(refCount/5*100, 100) + '%';
+
+  // Hide freemium banner for paid users
+  if (user.plan !== 'free') {
+    document.getElementById('freemiumBanner').style.display='none';
+  }
+}
+
+function updateFreemiumBanner(user) {
+  if (user.plan !== 'free') return;
+  const used = user.docsThisMonth || 0;
+  const pct = Math.min(used/FREE_LIMIT*100, 100);
+  document.getElementById('fbDesc').textContent = `${used} από ${FREE_LIMIT} έγγραφα χρησιμοποιήθηκαν αυτόν τον μήνα`;
+  document.getElementById('fbBar').style.width = pct + '%';
+  document.getElementById('fbBarLabel').textContent = `${used}/${FREE_LIMIT}`;
+  document.getElementById('docCounter').textContent = `${FREE_LIMIT - used} απομένουν`;
+}
+
+function showUpgrade() { document.getElementById('upgradeModal').classList.add('show'); }
+function closeModal() { document.getElementById('upgradeModal').classList.remove('show'); }
+function selectPlan(plan) {
+  // In production: redirect to Stripe checkout
+  alert(`Θα ανακατευθυνθείς στο Stripe για πληρωμή ${plan === 'pro' ? '€19' : '€9'}/μήνα.\n\n(Σύντομα διαθέσιμο!)`);
+  closeModal();
+}
+
+function copyRefLink() {
+  const link = document.getElementById('refLink').value;
+  navigator.clipboard.writeText(link).then(() => {
+    const btn = document.querySelector('.ref-copy-btn');
+    btn.textContent = '✓ Αντιγράφηκε!';
+    setTimeout(() => btn.textContent = '📋 Αντιγραφή', 2000);
+  });
+}
+
+// ═══════════════════════════════════════════
+// DOCUMENT ANALYSIS
+// ═══════════════════════════════════════════
+let file=null, docType='tax', expFmt='csv', keepLayout=false, extracted=null, rawTxt='';
+
+const dz=document.getElementById('dropZone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0])});
+document.getElementById('fileInput').addEventListener('change',e=>{if(e.target.files[0])loadFile(e.target.files[0])});
+document.getElementById('cameraInput').addEventListener('change',e=>{if(e.target.files[0])loadFile(e.target.files[0])});
+
+function loadFile(f) {
+  const ok = f.type.startsWith('image/') || f.type==='application/pdf' || f.name.toLowerCase().endsWith('.heic');
+  if(!ok){showErr('Μη υποστηριζόμενος τύπος. Χρησιμοποίησε PDF, JPG, PNG, WEBP ή HEIC.');return;}
+  file=f;
+  const sz=f.size>1048576?(f.size/1048576).toFixed(1)+' MB':(f.size/1024).toFixed(1)+' KB';
+  document.getElementById('fileName').textContent=f.name;
+  document.getElementById('fileMeta').textContent=sz+' · '+f.name.split('.').pop().toUpperCase();
+  document.getElementById('fiIco').textContent=f.type==='application/pdf'?'📋':'🖼️';
+  document.getElementById('uploadState').style.display='none';
+  document.getElementById('fileLoaded').style.display='block';
+  setDot(1,'done');setDot(2,'active');
+  hideErr();
+}
+
+function selDT(b,t){document.querySelectorAll('.dt-btn').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');docType=t;}
+function selEF(b,f){document.querySelectorAll('.ef-btn').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');expFmt=f;}
+function togOpt(id,flag){const c=document.getElementById(id),t=c.querySelector('.opt-tog');const on=!c.classList.contains('sel');c.classList.toggle('sel');t.textContent=on?'✓':'○';if(flag==='layout')keepLayout=on;}
+
+async function analyze() {
+  const email = getSession();
+  const users = getUsers();
+  const user = users[email];
+
+  // Check limit
+  if (user.plan === 'free' && (user.docsThisMonth || 0) >= FREE_LIMIT) {
+    showUpgrade();
+    return;
+  }
+
+  if(!file){showErr('Παρακαλώ επίλεξε αρχείο.');return;}
+  hideErr(); view('proc');
+
+  const steps=['ps1','ps2','ps3','ps4','ps5']; let si=0;
+  const tmr=setInterval(()=>{
+    if(si<steps.length){
+      if(si>0){const p=document.getElementById(steps[si-1]);p.classList.remove('active');p.classList.add('done');p.querySelector('.psd').textContent='✓';}
+      document.getElementById(steps[si]).classList.add('active');si++;
+    }
+  },2000);
+
+  try {
+    const b64=await toB64(file);
+    const isImg=file.type.startsWith('image/')||file.name.toLowerCase().endsWith('.heic');
+    const mt=isImg?(file.type||'image/jpeg'):'application/pdf';
+
+    // Call Netlify function (hides API key)
+    const res = await fetch('/api/analyze', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ fileData: b64, mediaType: mt, docType, keepLayout })
+    });
+
+    clearInterval(tmr);
+
+    if(!res.ok){const e=await res.json();throw new Error(e.error||`Error ${res.status}`);}
+
+    const data=await res.json();
+    if(!data.success)throw new Error(data.error||'Σφάλμα ανάλυσης');
+
+    // Increment doc counter
+    user.docsThisMonth = (user.docsThisMonth || 0) + 1;
+    saveUsers(users);
+    updateFreemiumBanner(user);
+
+    rawTxt=data.raw;
+    extracted=data.data;
+    renderRes(data.data);
+
+  } catch(e) {
+    clearInterval(tmr);
+    view('file');
+    showErr('Σφάλμα: '+e.message);
+  }
+}
+
+function renderRes(d) {
+  const sg=document.getElementById('sumGrid'); sg.innerHTML='';
+  const se=Object.entries(d.summary||{}).slice(0,4);
+  if(!se.length)se.push(['Τύπος',d.document_type||'—']);
+  se.forEach(([k,v])=>{const el=document.createElement('div');el.className='sc';el.innerHTML=`<div class="sc-lb">${k.replace(/_/g,' ')}</div><div class="sc-vl">${v||'—'}</div>`;sg.appendChild(el);});
+
+  const lp=document.getElementById('layPrev');
+  if(keepLayout&&d.layout_text){lp.style.display='block';document.getElementById('layContent').textContent=d.layout_text;}
+  else lp.style.display='none';
+
+  const fields=d.fields||[];
+  document.getElementById('fCount').textContent=`· ${fields.length} πεδία`;
+  document.getElementById('tHead').innerHTML='<th>Περιγραφή</th><th>Κωδικός</th><th>Τιμή</th><th>Κατηγορία</th>';
+  const tb=document.getElementById('tBody');tb.innerHTML='';
+  if(!fields.length){tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px">Δεν βρέθηκαν δεδομένα</td></tr>';}
+  else fields.forEach(f=>{const isA=/[€\d]/.test(String(f.value||''));const tr=document.createElement('tr');tr.innerHTML=`<td>${f.label||'—'}</td><td style="color:var(--muted)">${f.code||'—'}</td><td class="${isA?'amt':''}">${f.value||'—'}</td><td style="color:var(--muted)">${f.category||'—'}</td>`;tb.appendChild(tr);});
+
+  const eb=document.getElementById('expBtns');eb.innerHTML='';
+  if(expFmt==='csv'||expFmt==='both')eb.innerHTML+=`<button class="dl-btn" onclick="copyCSV()">📋 Αντιγραφή</button><button class="dl-btn prim" onclick="dlCSV()">⬇ CSV/Excel</button>`;
+  if(expFmt==='word'||expFmt==='both')eb.innerHTML+=`<button class="dl-btn word" onclick="dlWord()">📘 Word (.doc)</button>`;
+
+  document.getElementById('rawOut').textContent=rawTxt;
+  view('results');setDot(2,'done');setDot(3,'active');
+}
+
+function buildCSV(){const f=extracted?.fields||[];return['Περιγραφή,Κωδικός,Τιμή,Κατηγορία',...f.map(x=>[x.label,x.code,x.value,x.category].map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(','))].join('\n');}
+function dlCSV(){const b=new Blob(['\ufeff'+buildCSV()],{type:'text/csv;charset=utf-8;'});const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='logistoai_export.csv';a.click();URL.revokeObjectURL(u);}
+function copyCSV(){navigator.clipboard.writeText(buildCSV()).then(()=>{const b=document.querySelector('.dl-btn:not(.prim):not(.word)');if(b){b.textContent='✓ Αντιγράφηκε!';setTimeout(()=>b.textContent='📋 Αντιγραφή',2000);}});}
+
+function dlWord(){
+  if(!extracted)return;
+  const d=extracted,fields=d.fields||[],sum=d.summary||{};
+  const se=Object.entries(sum).filter(([,v])=>v&&v!=='...');
+  let html=`<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><title>LogistoAI Export</title><style>body{font-family:Calibri,Arial,sans-serif;font-size:11pt;margin:2cm;color:#1a1a1a}h1{font-size:18pt;color:#2d4a7a;border-bottom:2pt solid #e8a020;padding-bottom:6pt;margin-bottom:16pt}h2{font-size:13pt;color:#2d4a7a;margin-top:18pt;margin-bottom:8pt}.meta{background:#f7f4ef;padding:10pt;border:1pt solid #ddd8ce;margin-bottom:16pt}.meta p{margin:3pt 0;font-size:10pt;color:#555}.meta strong{color:#2d4a7a}table{border-collapse:collapse;width:100%;margin-bottom:16pt}th{background:#2d4a7a;color:white;padding:7pt 10pt;text-align:left;font-size:10pt}td{border:.5pt solid #ddd8ce;padding:6pt 10pt;font-size:10pt}tr:nth-child(even) td{background:#f7f4ef}.amt{color:#1a7a4a;font-weight:bold}.st td:first-child{font-weight:bold;color:#2d4a7a;width:40%}.layout{font-family:"Courier New",monospace;font-size:9pt;background:#f9f9f9;border:1pt solid #ddd;padding:10pt;white-space:pre;margin-bottom:16pt}.foot{margin-top:24pt;font-size:9pt;color:#aaa;border-top:.5pt solid #ddd;padding-top:6pt}</style></head><body>
+<h1>📄 ${d.document_type||'Έγγραφο'}</h1>
+<div class="meta"><p><strong>Εξαγωγή:</strong> ${new Date().toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'})}</p><p><strong>Αρχείο:</strong> ${file?.name||'—'}</p>${d.taxpayer?`<p><strong>Φορολογούμενος:</strong> ${d.taxpayer}</p>`:''}${d.afm?`<p><strong>ΑΦΜ:</strong> ${d.afm}</p>`:''}${d.date?`<p><strong>Ημερομηνία:</strong> ${d.date}</p>`:''}${d.invoice_number?`<p><strong>Αρ. Τιμολογίου:</strong> ${d.invoice_number}</p>`:''}</div>`;
+  if(keepLayout&&d.layout_text)html+=`<h2>📐 Μορφοποίηση Εγγράφου</h2><div class="layout">${d.layout_text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+  if(se.length){html+=`<h2>📊 Σύνοψη</h2><table class="st">`;se.forEach(([k,v])=>html+=`<tr><td>${k.replace(/_/g,' ')}</td><td>${v}</td></tr>`);html+=`</table>`;}
+  if(fields.length){html+=`<h2>📋 Αναλυτικά Πεδία (${fields.length})</h2><table><tr><th>Περιγραφή</th><th>Κωδικός</th><th>Τιμή</th><th>Κατηγορία</th></tr>`;fields.forEach(f=>{const a=/[€\d]/.test(String(f.value||''));html+=`<tr><td>${f.label||'—'}</td><td>${f.code||'—'}</td><td class="${a?'amt':''}">${f.value||'—'}</td><td>${f.category||'—'}</td></tr>`;});html+=`</table>`;}
+  html+=`<div class="foot">Δημιουργήθηκε από LogistoAI · Powered by AnaisTa · ${new Date().toLocaleDateString('el-GR')}</div></body></html>`;
+  const b=new Blob([html],{type:'application/msword;charset=utf-8'});const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='logistoai_export.doc';a.click();URL.revokeObjectURL(u);
+}
+
+function toB64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f);});}
+function view(v){document.getElementById('uploadState').style.display=v==='upload'?'block':'none';document.getElementById('fileLoaded').style.display=v==='file'?'block':'none';document.getElementById('procState').style.display=v==='proc'?'block':'none';document.getElementById('resState').style.display=v==='results'?'block':'none';}
+function setDot(n,s){const d=document.getElementById('d'+n);d.classList.remove('active','done');if(s)d.classList.add(s);}
+function showErr(m){document.getElementById('errMsg').textContent=m;document.getElementById('errBox').style.display='block';}
+function hideErr(){document.getElementById('errBox').style.display='none';}
+function resetAll(){file=null;extracted=null;rawTxt='';document.getElementById('fileInput').value='';document.getElementById('cameraInput').value='';[1,2,3].forEach(i=>setDot(i,''));setDot(1,'active');for(let i=1;i<=5;i++){const el=document.getElementById('ps'+i);el.classList.remove('active','done');el.querySelector('.psd').textContent='○';}hideErr();view('upload');document.getElementById('uploadState').style.display='block';}
+
+// Init
+window.addEventListener('load', () => {
+  const session = getSession();
+  if (session) loadApp();
+  else document.getElementById('pageAuth').style.display='block';
+
+  // Check if came from referral link to register
+  if (refCodeFromUrl && !session) showRegister();
+});
+</script>
+</body>
+</html>
